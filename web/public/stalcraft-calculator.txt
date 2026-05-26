@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Калькулятор крафта STALCRAFT</title>
+  <style>
+    :root {
+      --bg: #0d1012; --panel: #151a1e; --panel-2: #1b2227;
+      --text: #f3f5f2; --muted: #a4ada7; --line: #303941;
+      --accent: #d6a742; --accent-2: #7fd08a; --danger: #f06f65;
+      --input: #0b0e10; --shadow: 0 16px 45px rgba(0,0,0,.32);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: linear-gradient(180deg,rgba(214,167,66,.08),transparent 260px), radial-gradient(circle at 15% 0%,rgba(127,208,138,.08),transparent 330px), var(--bg);
+      color: var(--text); font-family: "Segoe UI",Arial,Helvetica,sans-serif; min-height: 100vh;
+    }
+    h1 { margin: 0 0 12px; color: #fff7df; font-size: 22px; font-weight: 900; }
+    header { position:sticky; top:0; z-index:10; border-bottom:1px solid rgba(255,255,255,.08); background:rgba(13,16,18,.92); backdrop-filter:blur(14px); }
+    .wrap { max-width:1500px; margin:0 auto; padding:16px 20px; }
+    .tabs { display:flex; flex-wrap:wrap; gap:6px; padding:4px; border:1px solid rgba(255,255,255,.07); border-radius:8px; background:rgba(0,0,0,.22); width:fit-content; max-width:100%; }
+    .category-tabs { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:9px; }
+    .tab { min-height:36px; border:0; border-radius:6px; background:transparent; color:#c9d0cc; padding:0 13px; cursor:pointer; font-weight:700; transition:background .15s,color .15s,box-shadow .15s; }
+    .tab.active { color:#15100a; background:linear-gradient(180deg,#f0c76a,#c9942f); box-shadow:0 4px 18px rgba(214,167,66,.25); }
+    .tab:hover:not(.active) { background:rgba(255,255,255,.06); color:#fff; }
+    .category-tab { min-height:38px; padding:0 14px; cursor:pointer; font-weight:700; border:1px solid rgba(255,255,255,.1); border-radius:6px; background:linear-gradient(180deg,#1b242a,#12181c); color:#d4ddd8; display:inline-flex; align-items:center; gap:8px; transition:all .15s; }
+    .category-tab::before { content:""; display:inline-block; width:7px; height:7px; border-radius:50%; background:#64737b; box-shadow:0 0 8px rgba(100,115,123,.35); }
+    .category-tab.active { border-color:#69b6e8; color:#e8f7ff; background:linear-gradient(180deg,#28475a,#18313f); box-shadow:0 4px 18px rgba(68,159,220,.22); }
+    .category-tab.active::before { background:#8ef1a0; box-shadow:0 0 14px rgba(142,241,160,.78); }
+    .category-tab:hover:not(.active) { border-color:rgba(214,167,66,.55); color:#fff; }
+    .empty-tab { display:inline-flex; align-items:center; min-height:36px; padding:0 12px; color:#8f9b95; font-size:13px; }
+    button { position:relative; cursor:pointer; font-family:inherit; }
+    button::after { content:""; position:absolute; inset:-1px; border-radius:inherit; pointer-events:none; opacity:0; box-shadow:0 0 0 1px rgba(214,167,66,.38),0 0 24px rgba(214,167,66,.28); transition:opacity .16s; }
+    button:hover::after, button:focus-visible::after { opacity:1; }
+    main.wrap { display:grid; grid-template-columns:minmax(300px,340px) minmax(0,1fr); gap:20px; align-items:start; }
+    .hero-art { grid-column:1/-1; position:relative; min-height:260px; overflow:hidden; border:1px solid var(--line); border-radius:8px; background:#10171b; box-shadow:0 20px 70px rgba(0,0,0,.42); transition:opacity .22s,filter .22s,transform .22s; }
+    .hero-art.is-switching { opacity:.72; filter:saturate(.85) brightness(.82); transform:translateY(2px); }
+    .hero-art::before { content:""; position:absolute; inset:0; background:linear-gradient(90deg,rgba(7,10,12,.94),rgba(7,10,12,.46) 42%,rgba(7,10,12,.18) 68%,rgba(7,10,12,.72)),linear-gradient(180deg,rgba(255,255,255,.08),transparent 40%,rgba(0,0,0,.25)); }
+    .hero-art::after { content:""; position:absolute; inset:16px; border:1px solid rgba(220,244,255,.22); pointer-events:none; }
+    .hero-content { position:relative; z-index:1; max-width:620px; padding:34px; transition:opacity .2s,transform .2s; }
+    .hero-art.is-switching .hero-content { opacity:.35; transform:translateX(8px); }
+    .hero-kicker { margin:0 0 8px; color:#8ef1a0; font-size:12px; font-weight:900; text-transform:uppercase; }
+    .hero-title { margin:0; color:#fff7df; font-size:34px; line-height:1.08; font-weight:900; }
+    .hero-sub { max-width:520px; margin:10px 0 0; color:var(--muted); line-height:1.45; font-size:14px; }
+    .hero-tags { display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
+    .hero-tags span { display:inline-flex; align-items:center; min-height:26px; border:1px solid rgba(255,255,255,.12); border-radius:4px; padding:0 9px; background:rgba(9,13,15,.55); color:#dce8e1; font-size:12px; font-weight:800; }
+    .panel { background:linear-gradient(180deg,rgba(255,255,255,.025),transparent) var(--panel); border:1px solid rgba(255,255,255,.08); border-radius:10px; box-shadow:var(--shadow); overflow:hidden; }
+    aside.panel { position:sticky; top:104px; }
+    .panel-head { padding:13px 16px; border-bottom:1px solid rgba(255,255,255,.08); background:linear-gradient(180deg,#222b31,#172025); color:#fff7df; font-size:15px; font-weight:700; }
+    .panel-body { padding:16px; }
+    label { display:block; margin:0 0 12px; color:#c1cac4; font-size:12px; font-weight:700; text-transform:uppercase; }
+    input { width:100%; min-height:36px; margin-top:6px; border:1px solid #3a454d; border-radius:5px; background:linear-gradient(180deg,#101417,#090b0d); color:#fff; padding:8px 10px; font:inherit; font-weight:700; outline:none; transition:border-color .15s,box-shadow .15s; }
+    input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(214,167,66,.16); }
+    .qty-row { display:grid; grid-template-columns:38px 1fr 38px; gap:7px; align-items:end; }
+    .icon-btn { min-height:36px; border:1px solid #3a454d; border-radius:5px; background:#222a2f; color:#f3d58a; cursor:pointer; font-size:20px; line-height:1; display:flex; align-items:center; justify-content:center; font-weight:900; }
+    .icon-btn:hover { border-color:var(--accent); }
+    .stats { gap:0; margin-top:12px; overflow:hidden; border:1px solid rgba(255,255,255,.07); border-radius:7px; background:rgba(0,0,0,.18); }
+    .stat { display:flex; justify-content:space-between; gap:12px; padding:11px 12px; border-bottom:1px solid rgba(255,255,255,.07); font-size:13px; }
+    .stat:last-child { border-bottom:0; }
+    .stat strong { font-size:14px; color:#fff; }
+    .stat-double { display:block; padding:0; }
+    .stat-row { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid rgba(255,255,255,.04); }
+    .stat-row:last-child { border-bottom:none; }
+    .stat-row span { color:#8f9b95; font-size:13px; display:flex; align-items:center; gap:5px; }
+    .stat-row strong { font-size:13px; color:#fff; }
+    .stat-hint { font-style:normal; font-size:10px; font-weight:700; padding:1px 5px; border-radius:3px; cursor:help; }
+    .cost-theo { color:#7ecff5 !important; }
+    .stat-row:first-child .stat-hint { background:rgba(126,207,245,.15); color:#7ecff5; }
+    .stat-row:last-child .stat-hint { background:rgba(131,224,146,.15); color:#83e092; }
+    .positive { color:var(--accent-2) !important; }
+    .negative { color:var(--danger) !important; }
+    .note { padding:10px 11px; border:1px solid rgba(214,167,66,.22); border-radius:7px; background:rgba(214,167,66,.07); color:#c7b985; font-size:12px; margin-top:12px; line-height:1.45; }
+    .auction-sale-block { margin-top:10px; padding:10px 12px; border-radius:7px; background:rgba(255,159,67,.08); border:1px solid rgba(255,159,67,.2); font-size:13px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .auction-sale-block .label { color:#aaa; }
+    .auction-sale-price { font-weight:700; font-size:15px; color:#ff9f43; }
+    .section { border-top:1px solid rgba(255,255,255,.08); }
+    .section:first-child { border-top:0; }
+    .section-title { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px 16px; padding:10px 15px; background:linear-gradient(180deg,#181e23,#111619); color:#f7f1dc; }
+    .section-title > span:first-child { font-weight:700; font-size:14px; }
+    .unit-cost-wrap { display:flex; gap:10px; align-items:center; flex-shrink:0; }
+    .unit-cost-theo { color:#7ecff5; font-size:12px; font-weight:600; padding:2px 8px; border-radius:4px; background:rgba(126,207,245,.1); border:1px solid rgba(126,207,245,.2); }
+    .section-meta { padding:0 15px 11px; background:#111619; color:#8f9b95; font-size:12px; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:8px 11px; border-top:1px solid rgba(255,255,255,.07); font-size:13px; text-align:left; vertical-align:middle; }
+    th { background:rgba(255,255,255,.025); color:#8f9b95; font-size:11px; text-transform:uppercase; letter-spacing:.35px; }
+    tbody tr:nth-child(even) { background:rgba(255,255,255,.018); }
+    tbody tr:hover { background:rgba(214,167,66,.055); }
+    td.num, th.num { text-align:right; white-space:nowrap; }
+    td input.price-input { width:104px; min-height:30px; margin:0; text-align:right; border-radius:4px; color:#f9dda0; }
+    .tag { display:inline-flex; align-items:center; min-height:22px; border:1px solid rgba(255,255,255,.07); border-radius:4px; padding:2px 8px; background:#21292e; color:#cbd3cf; font-size:11px; font-weight:700; }
+    .shopping { margin-top:18px; }
+    .shopping-total { display:flex; justify-content:space-between; gap:12px; padding:13px 15px; border-top:1px solid rgba(255,255,255,.08); background:linear-gradient(180deg,rgba(127,208,138,.12),rgba(127,208,138,.05)); color:#eaffed; font-weight:800; }
+    .auction-col { color:#aaa; }
+    .auction-price { font-size:12px; font-weight:600; }
+    .auction-price.loading { color:#666; animation:pulse 1.2s infinite; }
+    .auction-price.higher { color:#ff6b6b; }
+    .auction-price.lower { color:#83e092; }
+    .auction-price.equal { color:#aaa; }
+    .auction-na { color:#444; font-size:12px; }
+    .auction-refresh { cursor:pointer; font-size:13px; margin-left:4px; display:inline-block; transition:transform .3s; color:#666; }
+    .auction-refresh:hover { color:var(--accent); transform:rotate(180deg); }
+    .auction-refresh.spinning { animation:spin 1s linear infinite; }
+    ::-webkit-scrollbar { width:6px; height:6px; }
+    ::-webkit-scrollbar-thumb { background:var(--line); border-radius:3px; }
+    .custom-cursor,.custom-cursor-dot { position:fixed; top:0; left:0; z-index:9999; pointer-events:none; transform:translate(-50%,-50%); opacity:0; transition:opacity .16s,width .12s,height .12s,border-color .12s,background .12s; }
+    .custom-cursor { width:34px; height:34px; border:1px solid rgba(214,167,66,.75); border-radius:50%; background:rgba(214,167,66,.06); box-shadow:0 0 22px rgba(214,167,66,.24); mix-blend-mode:screen; }
+    .custom-cursor-dot { width:5px; height:5px; border-radius:50%; background:#f5d27b; box-shadow:0 0 12px rgba(245,210,123,.72); }
+    body.cursor-ready, body.cursor-ready * { cursor:none !important; }
+    body.cursor-ready .custom-cursor, body.cursor-ready .custom-cursor-dot { opacity:1; }
+    body.cursor-hover .custom-cursor { width:48px; height:48px; border-color:rgba(127,208,138,.95); background:rgba(127,208,138,.08); box-shadow:0 0 28px rgba(127,208,138,.32); }
+    body.cursor-down .custom-cursor { width:26px; height:26px; }
+    @media(pointer:coarse){ body.cursor-ready,body.cursor-ready *{cursor:auto !important} .custom-cursor,.custom-cursor-dot{display:none} }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .modal-overlay { position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.72); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .2s; }
+    .modal-overlay.open { opacity:1; pointer-events:all; }
+    .modal { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:32px; width:100%; max-width:420px; transform:translateY(16px); transition:transform .2s; position:relative; box-shadow:0 24px 80px rgba(0,0,0,.6); }
+    .modal-overlay.open .modal { transform:translateY(0); }
+    .modal h2 { margin:0 0 6px; font-size:20px; }
+    .modal p.sub { margin:0 0 22px; color:var(--muted); font-size:13px; }
+    .modal label { display:block; margin-bottom:14px; color:var(--muted); font-size:13px; }
+    .modal label input { margin-top:5px; }
+    .modal-close { position:absolute; top:14px; right:16px; background:none; border:none; color:var(--muted); font-size:22px; cursor:pointer; line-height:1; padding:4px; }
+    .modal-close:hover { color:var(--text); }
+    .btn-primary { width:100%; min-height:40px; border-radius:8px; background:var(--accent); color:#0f1711; border:none; font-weight:800; font-size:14px; cursor:pointer; margin-top:4px; transition:opacity .15s; }
+    .btn-primary:hover { opacity:.88; }
+    .btn-ghost { width:100%; min-height:36px; border-radius:8px; background:transparent; color:var(--muted); border:1px solid var(--line); font-size:13px; cursor:pointer; margin-top:8px; }
+    .form-error { color:#ef7b7b; font-size:12px; margin:-8px 0 10px; min-height:16px; display:block; }
+    .form-success { color:var(--accent-2); font-size:12px; margin:-8px 0 10px; min-height:16px; display:block; }
+    .tabs-auth { display:flex; margin-bottom:22px; border-bottom:1px solid var(--line); }
+    .tab-auth { flex:1; padding:9px; background:none; border:none; color:var(--muted); font-size:14px; font-weight:700; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all .15s; }
+    .tab-auth.active { color:var(--accent); border-bottom-color:var(--accent); }
+    .auth-btn { display:flex; align-items:center; gap:8px; padding:6px 14px; border:1px solid var(--line); border-radius:8px; background:var(--panel); color:var(--text); cursor:pointer; font-size:13px; font-weight:700; white-space:nowrap; }
+    .auth-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .avatar-btn { width:36px; height:36px; border-radius:50%; background:var(--panel-2); border:2px solid var(--line); cursor:pointer; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; color:var(--accent); flex-shrink:0; }
+    .avatar-btn:hover { border-color:var(--accent); }
+    .profile-wrap { position:relative; }
+    .profile-dropdown { position:absolute; right:0; top:calc(100% + 8px); background:var(--panel); border:1px solid var(--line); border-radius:10px; min-width:200px; z-index:150; box-shadow:0 16px 48px rgba(0,0,0,.5); overflow:hidden; display:none; }
+    .profile-dropdown.open { display:block; }
+    .pd-header { padding:14px 16px; border-bottom:1px solid var(--line); background:var(--panel-2); }
+    .pd-name { font-weight:800; font-size:14px; }
+    .pd-email { font-size:11px; color:var(--muted); margin-top:2px; word-break:break-all; }
+    .pd-item { display:flex; align-items:center; gap:10px; padding:11px 16px; cursor:pointer; font-size:13px; transition:background .12s; border:none; background:none; color:var(--text); width:100%; text-align:left; }
+    .pd-item:hover { background:var(--panel-2); }
+    .pd-item.danger { color:#ef7b7b; }
+    .profile-section { border:1px solid var(--line); border-radius:8px; padding:16px; margin-bottom:14px; }
+    .profile-section h3 { margin:0 0 12px; font-size:14px; color:var(--muted); }
+    .btn-sm { min-height:32px; padding:0 14px; border-radius:6px; background:var(--panel-2); border:1px solid var(--line); color:var(--text); font-size:12px; cursor:pointer; }
+    .btn-sm:hover { border-color:var(--accent); color:var(--accent); }
+    .otp-wrap { display:flex; gap:8px; justify-content:center; margin:16px 0; }
+    .otp-wrap input { width:44px; height:52px; text-align:center; font-size:22px; font-weight:800; border-radius:8px; border:1px solid var(--line); background:var(--input); color:var(--text); padding:0; margin:0; }
+    #chatWidget { position:fixed; right:0; bottom:0; z-index:180; display:flex; flex-direction:column; width:320px; height:480px; background:var(--panel); border:1px solid var(--line); border-bottom:none; border-right:none; border-radius:12px 0 0 0; transform:translateY(100%); transition:transform .3s cubic-bezier(.4,0,.2,1); box-shadow:-8px -8px 40px rgba(0,0,0,.4); }
+    #chatWidget.open { transform:translateY(0); }
+    .chat-head { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--line); background:var(--panel-2); border-radius:12px 0 0 0; flex-shrink:0; }
+    .chat-head-title { font-weight:800; font-size:14px; }
+    .chat-close-btn { background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer; line-height:1; padding:2px 6px; }
+    .chat-messages { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px; }
+    .chat-messages::-webkit-scrollbar { width:4px; }
+    .chat-messages::-webkit-scrollbar-thumb { background:var(--line); border-radius:2px; }
+    .chat-msg { max-width:88%; font-size:13px; line-height:1.4; }
+    .chat-msg.own { align-self:flex-end; }
+    .chat-msg .msg-meta { font-size:10px; color:var(--muted); margin-bottom:2px; }
+    .chat-msg.own .msg-meta { text-align:right; }
+    .chat-msg .msg-bubble { padding:7px 11px; border-radius:10px; background:var(--panel-2); display:inline-block; word-break:break-word; }
+    .chat-msg.own .msg-bubble { background:rgba(120,210,139,.18); color:#c8f0d0; }
+    .chat-input-wrap { display:flex; gap:8px; padding:10px 12px; border-top:1px solid var(--line); flex-shrink:0; }
+    .chat-input-wrap input { flex:1; min-height:34px; border-radius:6px; background:var(--input); border:1px solid var(--line); color:var(--text); padding:6px 10px; font:inherit; font-size:13px; margin:0; }
+    .chat-send-btn { min-height:34px; padding:0 12px; border-radius:6px; background:var(--accent); color:#0f1711; border:none; font-weight:800; cursor:pointer; font-size:13px; }
+    .chat-login-note { padding:20px; text-align:center; color:var(--muted); font-size:13px; line-height:1.5; }
+    .chat-fab { position:fixed; right:20px; bottom:20px; z-index:175; width:48px; height:48px; border-radius:50%; background:var(--accent); color:#0f1711; border:none; font-size:22px; cursor:pointer; box-shadow:0 4px 20px rgba(120,210,139,.4); display:flex; align-items:center; justify-content:center; transition:transform .15s; }
+    .chat-fab:hover { transform:scale(1.08); }
+    .chat-unread { position:absolute; top:-4px; right:-4px; width:18px; height:18px; border-radius:50%; background:#ef7b7b; color:#fff; font-size:10px; font-weight:800; display:none; align-items:center; justify-content:center; }
+    @media(max-width:900px) { header{position:static} aside.panel{position:static} main.wrap{grid-template-columns:1fr} .table-scroll{overflow-x:auto} .table-scroll table{min-width:680px} }
+  </style>
+</head>
+<body>
+  <div class="custom-cursor" aria-hidden="true"></div>
+  <div class="custom-cursor-dot" aria-hidden="true"></div>
+  <header>
+    <div class="wrap" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:0;">
+        <h1>Калькулятор крафта STALCRAFT</h1>
+        <div class="category-tabs" id="categories"></div>
+        <div class="tabs" id="tabs"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
+        <div id="onlineBadge" style="display:flex;align-items:center;gap:6px;padding:5px 12px;border:1px solid var(--line);border-radius:20px;background:var(--panel);font-size:13px;cursor:pointer;" onclick="toggleChat()">
+          <span style="width:8px;height:8px;border-radius:50%;background:#4caf50;box-shadow:0 0 6px #4caf5088;display:inline-block;"></span>
+          <span id="onlineCount">0 онлайн</span>
+        </div>
+        <div id="authArea"></div>
+      </div>
+    </div>
+  </header>
+  <main class="wrap">
+    <div class="hero-art" id="heroArt">
+      <div class="hero-content">
+        <p class="hero-kicker" id="heroKicker">Лабораторный стол</p>
+        <h2 class="hero-title" id="heroTitle">Калькулятор крафта для вылазок в Зону</h2>
+        <p class="hero-sub" id="heroSub">Считай себестоимость, закупку и прибыль по всей цепочке.</p>
+        <div class="hero-tags" id="heroTags"><span>Крафт</span><span>Себестоимость</span><span>Закупка</span><span>Прибыль</span></div>
+      </div>
+    </div>
+    <aside class="panel">
+      <div class="panel-head" id="activeName"></div>
+      <div class="panel-body">
+        <div class="qty-row">
+          <button class="icon-btn" onclick="stepQty(-1)">−</button>
+          <label>Нужно получить, шт<input id="targetQty" type="text" inputmode="numeric" value="100" oninput="updateQty(this.value)"></label>
+          <button class="icon-btn" onclick="stepQty(1)">+</button>
+        </div>
+        <label>Цена продажи за 1 шт<input id="salePrice" type="text" inputmode="numeric" oninput="updateSale(this.value)"></label>
+        <div class="stats" id="summary"></div>
+        <p class="note">Крафты округляются вверх, чтобы предметов точно хватило. Себестоимость над секциями считается по среднему выходу крафта.</p>
+      </div>
+    </aside>
+    <section>
+      <div class="panel">
+        <div class="panel-head" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>Цепочка крафта</span>
+          <span style="font-size:12px;font-weight:400;color:var(--muted);">Аукцион <span class="auction-refresh" onclick="loadAuctionPrices()" title="Обновить">↻</span></span>
+        </div>
+        <div class="table-scroll" id="craftTable"></div>
+      </div>
+      <div class="panel shopping">
+        <div class="panel-head">Список закупки</div>
+        <div class="table-scroll" id="shoppingList"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Auth Modal -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('authModal')">×</button>
+      <div class="tabs-auth">
+        <button class="tab-auth active" id="tabLogin" onclick="switchAuthTab('login')">Войти</button>
+        <button class="tab-auth" id="tabRegister" onclick="switchAuthTab('register')">Регистрация</button>
+      </div>
+      <div id="formLogin">
+        <label>Email<input type="email" id="loginEmail" placeholder="stalker@zone.ru"></label>
+        <label>Пароль<input type="password" id="loginPassword" placeholder="••••••••"></label>
+        <span class="form-error" id="loginError"></span>
+        <button class="btn-primary" onclick="doLogin()">Войти</button>
+        <button class="btn-ghost" onclick="showForgotForm()">Забыл пароль</button>
+      </div>
+      <div id="formRegister" style="display:none">
+        <label>Логин (никнейм)<input type="text" id="regUsername" placeholder="stalker_zone"></label>
+        <span class="form-error" id="usernameError"></span>
+        <label>Email<input type="email" id="regEmail" placeholder="stalker@zone.ru"></label>
+        <label>Пароль<input type="password" id="regPassword" placeholder="Минимум 8 символов"></label>
+        <span class="form-error" id="regError"></span>
+        <button class="btn-primary" onclick="doRegister()">Создать аккаунт</button>
+      </div>
+      <div id="formOTP" style="display:none">
+        <h2>Подтверждение</h2>
+        <p class="sub">Введи 6-значный код из письма на <strong id="otpEmail"></strong></p>
+        <div class="otp-wrap" id="otpInputs">
+          <input maxlength="1" oninput="otpNext(this,0)"><input maxlength="1" oninput="otpNext(this,1)">
+          <input maxlength="1" oninput="otpNext(this,2)"><input maxlength="1" oninput="otpNext(this,3)">
+          <input maxlength="1" oninput="otpNext(this,4)"><input maxlength="1" oninput="otpNext(this,5)">
+        </div>
+        <span class="form-error" id="otpError"></span>
+        <button class="btn-primary" onclick="doVerifyOTP()">Подтвердить</button>
+        <button class="btn-ghost" onclick="resendOTP()">Отправить повторно</button>
+      </div>
+      <div id="formForgot" style="display:none">
+        <h2>Сброс пароля</h2>
+        <p class="sub">Введи email — пришлём ссылку для сброса</p>
+        <label>Email<input type="email" id="forgotEmail" placeholder="stalker@zone.ru"></label>
+        <span class="form-error" id="forgotError"></span>
+        <span class="form-success" id="forgotSuccess"></span>
+        <button class="btn-primary" onclick="doForgot()">Отправить письмо</button>
+        <button class="btn-ghost" onclick="switchAuthTab('login')">← Назад</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Modal -->
+  <div class="modal-overlay" id="profileModal">
+    <div class="modal" style="max-width:460px;max-height:90vh;overflow-y:auto;padding:24px;">
+      <button class="modal-close" onclick="closeModal('profileModal')">×</button>
+      <h2 style="margin:0 0 4px;">Личный кабинет</h2>
+      <p class="sub" id="profileSubtitle" style="margin:0 0 16px;"></p>
+      <div class="profile-section"><h3>Логин</h3>
+        <label style="margin-bottom:8px;">Никнейм<input type="text" id="profileUsername" placeholder="stalker_zone" style="margin-top:4px;"></label>
+        <span class="form-error" id="profileUsernameError"></span><span class="form-success" id="profileUsernameSuccess"></span>
+        <button class="btn-sm" onclick="updateUsername()">Сохранить логин</button>
+      </div>
+      <div class="profile-section"><h3>Email</h3>
+        <label style="margin-bottom:8px;">Новый email<input type="email" id="profileEmail" placeholder="new@zone.ru" style="margin-top:4px;"></label>
+        <span class="form-error" id="profileEmailError"></span><span class="form-success" id="profileEmailSuccess"></span>
+        <button class="btn-sm" onclick="updateEmail()">Сменить email</button>
+      </div>
+      <div class="profile-section" style="margin-bottom:0;"><h3>Пароль</h3>
+        <label style="margin-bottom:8px;">Новый пароль<input type="password" id="profilePassword" placeholder="Минимум 8 символов" style="margin-top:4px;"></label>
+        <label style="margin-bottom:8px;">Повтор<input type="password" id="profilePassword2" placeholder="Повтори пароль" style="margin-top:4px;"></label>
+        <span class="form-error" id="profilePasswordError"></span><span class="form-success" id="profilePasswordSuccess"></span>
+        <button class="btn-sm" onclick="updatePassword()">Сменить пароль</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat -->
+  <div id="chatWidget">
+    <div class="chat-head">
+      <span class="chat-head-title">💬 Общий чат <span id="chatOnline" style="color:var(--muted);font-weight:400;font-size:12px;"></span></span>
+      <button class="chat-close-btn" onclick="toggleChat()">×</button>
+    </div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div id="chatInputArea">
+      <div class="chat-input-wrap">
+        <input type="text" id="chatInput" placeholder="Написать сообщение…" maxlength="300" onkeydown="if(event.key==='Enter')sendMessage()">
+        <button class="chat-send-btn" onclick="sendMessage()">→</button>
+      </div>
+    </div>
+  </div>
+  <button class="chat-fab" onclick="toggleChat()">💬<span class="chat-unread" id="chatUnread">0</span></button>
+
+  <script>
+  const energyPrice=1;
+  function buy(name,qty){return{type:"buy",name,qty};}
+  function craft(name,qty,recipe){return{type:"craft",name,qty,recipe};}
+
+  const recipes={
+    foil_hat:{name:"Шапочка из фольги",output:13,energy:1200,ingredients:[buy("Водка",3),craft("Рассол",6,"pickle"),buy("Гнозис",12),craft("Ноотроп",7,"nootrop"),buy("Чертоцвет",10)]},
+    pickle:{name:"Рассол",output:23,energy:1000,ingredients:[buy("Мякоть солевика",30),buy("Крупный рассольник",1),buy("Водонос",5),craft("Антитоксин",3,"antitoxin")]},
+    antitoxin:{name:"Антитоксин",output:7.5,energy:800,ingredients:[craft("Аминокислота",2,"amino"),craft("Ацетилхлорид",3,"acetyl")]},
+    amino:{name:"Аминокислота",output:8,energy:100,ingredients:[buy("Дрожжи",1),buy("Мякоть сластены",7)]},
+    acetyl:{name:"Ацетилхлорид",output:3.5,energy:600,ingredients:[buy("Технический спирт",1),buy("Углекислый газ",4),craft("Хлор",3,"chlorine")]},
+    chlorine:{name:"Хлор",output:8,energy:300,ingredients:[buy("Мякоть солевика",35),buy("Бутылка чистой воды",2),buy("Электросмесь",1)]},
+    nootrop:{name:"Ноотроп",output:3,energy:800,ingredients:[buy("Термическая смесь",2),craft("Психореагент",3,"psycho"),buy("Гнозис",1),buy("Чертоцвет",1),buy("Янтарная полынь",1)]},
+    psycho:{name:"Психореагент",output:6,energy:600,ingredients:[buy("Технический спирт",2),craft("Аминокислота",4,"amino"),buy("Морозная смесь",3)]},
+    pea_soup:{name:"Гороховый суп",output:6,energy:1100,ingredients:[buy("Бутылка чистой воды",3),craft("Армейские галеты",2,"army_biscuit"),buy("Термическая смесь",1),craft("Каша гороховая с мясом",4,"pea_porridge")]},
+    army_biscuit:{name:"Армейские галеты",output:4.5,energy:500,ingredients:[buy("Молоко",2),buy("Дрожжи",1),craft("Тесто",2,"dough"),buy("Набор специй",1),buy("Кислотная крапива",5)]},
+    dough:{name:"Тесто",output:3,energy:300,ingredients:[buy("Бутылка чистой воды",3),buy("Дрожжи",5),buy("Мука",3)]},
+    pea_porridge:{name:"Каша гороховая с мясом",output:2,energy:1000,ingredients:[buy("Боевой горох",2),buy("Набор специй",1),craft("Отличная тушенка",2,"excellent_stew")]},
+    excellent_stew:{name:"Отличная тушенка",output:5.5,energy:600,ingredients:[buy("Консервная банка",3),craft("Мясные консервы",1,"canned_meat"),buy("Набор специй",1),craft("Колбасная нарезка",1,"sausage"),buy("Животный жир",1)]},
+    canned_meat:{name:"Мясные консервы",output:8,energy:400,ingredients:[buy("Консервная банка",5),craft("Фарш из собаки",1,"dog_minced"),craft("Фарш из хрюши",1,"pig_minced")]},
+    sausage:{name:"Колбасная нарезка",output:26,energy:500,ingredients:[craft("Фарш из собаки",2,"dog_minced"),craft("Фарш из хрюши",2,"pig_minced"),craft("Фарш из кабана",2,"boar_minced"),buy("Набор специй",1),buy("Животный жир",1)]},
+    dog_minced:{name:"Фарш из собаки",output:5,energy:300,ingredients:[buy("Мясо шавки",2),buy("Набор специй",3)]},
+    pig_minced:{name:"Фарш из хрюши",output:5,energy:300,ingredients:[buy("Мясо хрюши",2),buy("Набор специй",3)]},
+    boar_minced:{name:"Фарш из кабана",output:5,energy:300,ingredients:[buy("Мясо кабана",2),buy("Набор специй",3)]},
+    garlic_soup:{name:"Чесночный суп",output:6,energy:1100,ingredients:[buy("Чеснок",6),buy("Термическая смесь",1),craft("Фасолевый суп",3,"bean_soup"),craft("Хорог",4,"horog")]},
+    bean_soup:{name:"Фасолевый суп",output:3.5,energy:1400,ingredients:[buy("Бутылка чистой воды",2),buy("Консервированная фасоль",3),buy("Термическая смесь",1),craft("Шпроты",2,"sprats")]},
+    sprats:{name:"Шпроты",output:9.5,energy:600,ingredients:[buy("Консервная банка",2),craft("Рыбные консервы",1,"canned_fish"),buy("Набор специй",5),buy("Кислотная крапива",10)]},
+    canned_fish:{name:"Рыбные консервы",output:5,energy:500,ingredients:[craft("Рыбное филе",1,"fish_fillet"),buy("Консервная банка",1),buy("Бутылка чистой воды",1)]},
+    fish_fillet:{name:"Рыбное филе",output:4,energy:100,ingredients:[buy("Полутухлая рыба",1),buy("Водонос",10)]},
+    horog:{name:"Хорог",output:2,energy:1000,ingredients:[buy("Консервная банка",1),buy("Животный жир",1),craft("Фасолевый суп",1,"bean_soup"),craft("Жаркое из мутантов",1,"mutant_roast")]},
+    mutant_roast:{name:"Жаркое из мутантов",output:17.25,energy:800,ingredients:[craft("Протертые овощи",6,"mashed_veg"),buy("Термическая смесь",1),craft("Отличная тушенка",1,"excellent_stew"),buy("Гипофиз мертвеца",1)]},
+    mashed_veg:{name:"Протертые овощи",output:5,energy:100,ingredients:[buy("Помидор",10),buy("Чеснок",2),buy("Бледнолист",10),buy("Кислотная крапива",10)]},
+    energy_battery:{name:"Энергетик Батарейка",output:19.5,energy:900,ingredients:[buy("Кофе",6),craft("Глицерин",1,"glycerin"),buy("Мякоть сластены",3),buy("Мякоть куборбуза",2)]},
+    glycerin:{name:"Глицерин",output:6,energy:500,ingredients:[craft("Едкий натрий",3,"caustic_soda"),buy("Животный жир",4),buy("Реагенты",1)]},
+    caustic_soda:{name:"Едкий натрий",output:8,energy:300,ingredients:[buy("Мякоть солевика",8),buy("Бутылка чистой воды",3),buy("Электросмесь",2),buy("Защитное снаряжение",1)]},
+    strong_metal:{name:"Прочный металл",output:1,energy:600,ingredients:[craft("Азотная кислота",6,"nitric_acid"),craft("Листы сваренного металла",1,"welded_sheets")]},
+    nitric_acid:{name:"Азотная кислота",output:8,energy:300,ingredients:[buy("Аммиак",5),buy("Бутылка чистой воды",5),craft("Железо",2,"iron"),craft("Защитное снаряжение",1,"protective_gear")]},
+    welded_sheets:{name:"Листы сваренного металла",output:2.5,energy:700,ingredients:[craft("Смазочные материалы",1,"lubricant"),craft("Железо",5,"iron")]},
+    lubricant:{name:"Смазочные материалы",output:3,energy:400,ingredients:[craft("Очищенный жир",1,"refined_fat"),craft("Биогаз",1,"biogas")]},
+    refined_fat:{name:"Очищенный жир",output:1,energy:200,ingredients:[buy("Животный жир",3)]},
+    biogas:{name:"Биогаз",output:1,energy:100,ingredients:[buy("Полутухлая рыба",4)]},
+    iron:{name:"Железо",output:50,energy:100,ingredients:[buy("Остатки приборов «Шепота»",1),buy("Реагенты",5)]},
+    protective_gear:{name:"Защитное снаряжение",output:27.5,energy:200,ingredients:[buy("Ткань",5),buy("Термическая смесь",10),buy("Тёмный Лимб",1)]},
+    alkobyk:{name:"Алкобык",output:4,energy:1200,ingredients:[buy("Энергетик «Жидень EXTR»",6),buy("Тоник «Арни»",6),buy("Паштет «Собачья радость»",7),craft("Водка «Кривой Коготь»",3,"crooked_vodka"),craft("Хорог (для Алкобыка)",6,"khorog_alko")]},
+    khorog_alko:{name:"Хорог",output:2,energy:1000,ingredients:[buy("Консервная банка",1),buy("Животный жир",1),craft("Фасолевый суп",1,"fasol_soup_alko"),craft("Жаркое из мутантов",1,"zharkoye_alko")]},
+    fasol_soup_alko:{name:"Фасолевый суп",output:3.5,energy:1400,ingredients:[buy("Бутылка чистой воды",2),buy("Консервированная фасоль",3),buy("Термическая смесь",1),craft("Шпроты",2,"shproty_alko")]},
+    shproty_alko:{name:"Шпроты",output:9.5,energy:600,ingredients:[buy("Консервная банка",2),craft("Рыбные консервы",1,"rybkon_alko"),buy("Набор специй",5),buy("Кислотная крапива",10)]},
+    rybkon_alko:{name:"Рыбные консервы",output:5,energy:500,ingredients:[buy("Консервная банка",1),craft("Рыбное филе",1,"rybfile_alko"),buy("Бутылка чистой воды",1)]},
+    rybfile_alko:{name:"Рыбное филе",output:4,energy:100,ingredients:[buy("Полутухлая рыба",1),buy("Водонос",10)]},
+    zharkoye_alko:{name:"Жаркое из мутантов",output:17.25,energy:800,ingredients:[craft("Протёртые овощи",6,"ovoshi_alko"),buy("Термическая смесь",1),craft("Отличная тушенка",1,"tushenka_alko"),buy("Гипофиз мертвеца",1)]},
+    ovoshi_alko:{name:"Протёртые овощи",output:5,energy:100,ingredients:[buy("Помидор",10),buy("Чеснок",2),buy("Бледнолист",10),buy("Кислотная крапива",10)]},
+    tushenka_alko:{name:"Отличная тушенка",output:5.5,energy:600,ingredients:[buy("Консервная банка",3),craft("Мясные консервы",1,"myaskon_alko"),buy("Набор специй",1),craft("Колбасная нарезка",1,"kolbasa_alko"),buy("Животный жир",1)]},
+    myaskon_alko:{name:"Мясные консервы",output:8,energy:400,ingredients:[buy("Консервная банка",5),craft("Фарш из собаки",1,"farsh_sob_alko"),craft("Фарш из хрюши",1,"farsh_xry_alko")]},
+    kolbasa_alko:{name:"Колбасная нарезка",output:26,energy:500,ingredients:[craft("Фарш из собаки",2,"farsh_sob_alko"),craft("Фарш из хрюши",2,"farsh_xry_alko"),craft("Фарш из кабана",2,"farsh_kab_alko"),buy("Набор специй",1),buy("Животный жир",1)]},
+    farsh_sob_alko:{name:"Фарш из собаки",output:5,energy:300,ingredients:[buy("Мясо шавки",2),buy("Набор специй",3)]},
+    farsh_xry_alko:{name:"Фарш из хрюши",output:5,energy:300,ingredients:[buy("Мясо хрюши",2),buy("Набор специй",3)]},
+    farsh_kab_alko:{name:"Фарш из кабана",output:5,energy:300,ingredients:[buy("Мясо кабана",2),buy("Набор специй",3)]},
+    crooked_vodka:{name:"Водка «Кривой Коготь»",output:3.75,energy:1000,ingredients:[buy("Бутылка чистой воды",4),buy("Водка",5),craft("Аномальное шампанское",2,"anom_champagne"),buy("Мякоть лимонника",5)]},
+    anom_champagne:{name:"Аномальное шампанское",output:5.5,energy:900,ingredients:[craft("Игристое шампанское",4,"igrist_champ"),craft("Аномальные дрожжи",1,"anom_drozhzhi"),craft("Светящийся сахар",1,"glowing_sugar"),buy("Мякоть куборбуза",10)]},
+    igrist_champ:{name:"Игристое шампанское",output:9,energy:700,ingredients:[craft("Базовое вино",5,"base_wine"),craft("Аномальные дрожжи",1,"anom_drozhzhi"),buy("Мякоть мятноплода",7),buy("Мякоть сластены",15),craft("Вино с осадком",2,"wine_sediment")]},
+    base_wine:{name:"Базовое вино",output:17,energy:300,ingredients:[craft("Брага",2,"braga"),buy("Дрожжи",5),buy("Бутылка чистой воды",2),buy("Мякоть спиртня",5)]},
+    braga:{name:"Брага",output:10,energy:100,ingredients:[buy("Мякоть спиртня",5),buy("Мякоть куборбуза",5)]},
+    anom_drozhzhi:{name:"Аномальные дрожжи",output:19,energy:100,ingredients:[buy("Дрожжи",10),buy("Аномальная пыль",1),buy("Пыль изменения",1)]},
+    wine_sediment:{name:"Вино с осадком",output:8,energy:600,ingredients:[craft("Тиражный ликер",3,"tirazh_liquer"),craft("Базовое вино",5,"base_wine")]},
+    tirazh_liquer:{name:"Тиражный ликер",output:10.5,energy:400,ingredients:[craft("Базовое вино",5,"base_wine"),craft("Аномальные дрожжи",5,"anom_drozhzhi"),buy("Мякоть мятноплода",10)]},
+    glowing_sugar:{name:"Светящийся сахар",output:30,energy:1200,ingredients:[buy("Аномальная пыль",100),buy("Мякоть сластены",10),buy("Аномальная плазма",1)]},
+    shizoyorsh:{name:"«ШизоЕрш»",output:10,energy:1100,ingredients:[craft("Мутировавшие ферменты",1,"mut_fermenty"),craft("Нейродегенерант",1,"neyrodegen"),craft("Теломераза",1,"telomeraza"),buy("Мякоть куборбуза",10),buy("Мякоть лимонника",1)]},
+    mut_fermenty:{name:"Мутировавшие ферменты",output:7.5,energy:900,ingredients:[buy("Морозная смесь",2),buy("Аномальная пыль",160),craft("Нитроглицерин",2,"nitroglit"),craft("Светящийся сахар",1,"glowing_sugar"),craft("Гормоны",5,"hormony")]},
+    neyrodegen:{name:"Нейродегенерант",output:7.5,energy:900,ingredients:[buy("Электросмесь",3),buy("Аномальная пыль",200),craft("Гремучая ртуть",1,"gremuch_rtut"),craft("Светящийся сахар",2,"glowing_sugar"),craft("Гормоны",5,"hormony")]},
+    telomeraza:{name:"Теломераза",output:10,energy:900,ingredients:[buy("Черная селезенка",2),buy("Селезенка мутанта из Любеча",3),craft("Кровяная сыворотка",1,"krov_syvoro"),buy("Янтарная полынь",50),buy("Мякоть лимонника",15)]},
+    krov_syvoro:{name:"Кровяная сыворотка",output:3.25,energy:600,ingredients:[craft("Протромбин",1,"protrombin"),buy("Электросмесь",1)]},
+    protrombin:{name:"Протромбин",output:8,energy:400,ingredients:[craft("Плазма крови",3,"plazma_krovi"),craft("Серная соль",3,"sernaya_sol"),craft("Нашатырь",4,"nashatyr"),buy("Мякоть спиртня",1)]},
+    plazma_krovi:{name:"Плазма крови",output:6,energy:100,ingredients:[buy("Мясо кабана",1)]},
+    sernaya_sol:{name:"Серная соль",output:12.5,energy:500,ingredients:[craft("Серная кислота",6,"sernaya_kislota"),buy("Термическая смесь",3)]},
+    sernaya_kislota:{name:"Серная кислота",output:8,energy:300,ingredients:[buy("Бутылка чистой воды",1),buy("Перчатки",1),buy("Гипс",1),buy("Электросмесь",1)]},
+    nashatyr:{name:"Нашатырь",output:5.25,energy:500,ingredients:[craft("Азотная кислота",1,"nitric_acid"),craft("Хлор",1,"chlorine"),buy("Реагенты",1)]},
+    nitroglit:{name:"Нитроглицерин",output:6.25,energy:800,ingredients:[craft("Азотная кислота",2,"nitric_acid"),buy("Морозная смесь",1),craft("Глицерин",3,"glitserin"),craft("Серная кислота",3,"sernaya_kislota")]},
+    glitserin:{name:"Глицерин",output:6,energy:500,ingredients:[craft("Едкий натрий",3,"edky_natriy"),buy("Животный жир",4),buy("Реагенты",1)]},
+    edky_natriy:{name:"Едкий натрий",output:8,energy:300,ingredients:[buy("Мякоть солевика",8),buy("Бутылка чистой воды",3),buy("Электросмесь",2),craft("Защитное снаряжение",1,"protective_gear")]},
+    gremuch_rtut:{name:"Гремучая ртуть",output:5.25,energy:800,ingredients:[craft("Ртуть",3,"rtut"),craft("Азотная кислота",3,"nitric_acid"),buy("Термическая смесь",1),buy("Водка",1)]},
+    rtut:{name:"Ртуть",output:9,energy:300,ingredients:[buy("Перчатки",1),buy("Термическая смесь",1),buy("Алые минералы",3)]},
+    hormony:{name:"Гормоны",output:12,energy:600,ingredients:[buy("Технический спирт",3),craft("Альфа биоматериал",3,"alfa_bio"),craft("Серная кислота",2,"sernaya_kislota")]},
+    alfa_bio:{name:"Альфа биоматериал",output:16,energy:100,ingredients:[buy("Селезенка мутанта из Любеча",1),buy("Глаз зомби",1),buy("Гипофиз мертвеца",1)]},
+    panacea:{name:"«Панацея»",output:25,energy:1200,ingredients:[buy("Технический спирт",10),buy("Аптечка проводника",4),craft("Антитоксин",3,"antitoxin"),craft("Измененный сидр",2,"izmenennyy_sidr"),buy("Янтарная полынь",10)]},
+    izmenennyy_sidr:{name:"Измененный сидр",output:3.75,energy:1000,ingredients:[craft("Сок",2,"sok"),buy("Бутылка чистой воды",4),craft("Светящийся сахар",1,"glowing_sugar"),craft("Аномальное шампанское",2,"anom_champagne"),buy("Мякоть лимонника",5)]},
+    sok:{name:"Сок",output:19,energy:100,ingredients:[buy("Бутылка чистой воды",2),buy("Мякоть сластены",4),buy("Мякоть куборбуза",2)]},
+  };
+
+  const defaultPrices={
+    "Водка":186,"Гнозис":100,"Чертоцвет":1500,"Мякоть солевика":1200,"Крупный рассольник":20000,
+    "Водонос":150,"Дрожжи":5000,"Мякоть сластены":8000,"Технический спирт":1600,"Углекислый газ":100,
+    "Бутылка чистой воды":500,"Электросмесь":120,"Термическая смесь":100,"Янтарная полынь":10000,
+    "Морозная смесь":120,"Молоко":400,"Набор специй":6000,"Кислотная крапива":25,"Мука":100,
+    "Боевой горох":1500,"Консервная банка":350,"Животный жир":1000,"Мясо шавки":3000,
+    "Мясо хрюши":3000,"Мясо кабана":3000,"Чеснок":1000,"Консервированная фасоль":123,
+    "Полутухлая рыба":8000,"Гипофиз мертвеца":10000,"Помидор":4000,"Бледнолист":150,
+    "Кофе":1000,"Мякоть куборбуза":1000,"Реагенты":700,"Защитное снаряжение":5680,
+    "Аммиак":18000,"Остатки приборов «Шепота»":50000,"Ткань":4000,"Тёмный Лимб":140000,
+    "Энергетик «Жидень EXTR»":1184,"Тоник «Арни»":1161,"Паштет «Собачья радость»":237,
+    "Мякоть лимонника":1500,"Мякоть мятноплода":75,"Мякоть спиртня":280,"Аномальная пыль":280,
+    "Пыль изменения":3000,"Аномальная плазма":1000,"Светящийся сахар":0,
+    "Черная селезенка":140000,"Селезенка мутанта из Любеча":10000,"Перчатки":800,"Гипс":150,
+    "Алые минералы":350,"Глаз зомби":1200,"Аптечка проводника":0,
+  };
+
+  const categories={
+    cooking:{name:"Кулинария",kicker:"Кухонный стол",title:"Полевой повар у горячего котла",sub:"Блочный сталкер готовит супы и рационы прямо на базе: все ингредиенты, энергия и прибыль собираются в одну цепочку.",tags:["Супы","Рационы","Закупка","Прибыль"]},
+    materials:{name:"Сырье и материалы",kicker:"Рабочий стол",title:"Смеси, реагенты и редкие компоненты",sub:"Персонаж разбирает примеси на верстаке, собирая промежуточные материалы для дальнейшего производства.",tags:["Реагенты","Материалы","Верстак","Себестоимость"]},
+    medicine:{name:"Медицина",kicker:"Медицинский отсек",title:"Инъекторы, пробы и стимуляторы",sub:"Лабораторный сталкер работает с пробирками и шприцами, чтобы посчитать цену каждого медицинского крафта.",tags:["Медицина","Стимуляторы","Энергия","Расходники"]},
+    engineering:{name:"Инженерия",kicker:"Инженерный пост",title:"Сварка, металл и ремонтные узлы",sub:"Блочный мастер варит металл и собирает детали для тяжелого крафта и инженерных цепочек.",tags:["Сварка","Металл","Детали","Сборка"]},
+    moonshine:{name:"Самогоноварение",kicker:"Химический стол",title:"Перегонка, колбы и опасные растворы",sub:"Сталкер-химик в белом халате переливает смеси между пробирками и следит за стоимостью каждой партии.",tags:["Колбы","Перегонка","Растворы","Партии"]},
+  };
+
+  const products={
+    foil:{name:"Шапочка из фольги",recipe:"foil_hat",sale:15000,qty:100,category:"cooking"},
+    pea:{name:"Гороховый суп",recipe:"pea_soup",sale:10000,qty:100,category:"cooking"},
+    garlic:{name:"Чесночный суп",recipe:"garlic_soup",sale:5400,qty:100,category:"cooking"},
+    nootrop:{name:"Ноотроп",recipe:"nootrop",sale:11400,qty:100,category:"materials"},
+    battery:{name:"Энергетик Батарейка",recipe:"energy_battery",sale:3500,qty:100,category:"medicine"},
+    strong_metal:{name:"Прочный металл",recipe:"strong_metal",sale:100000,qty:10,category:"engineering"},
+    alkobyk:{name:"Алкобык",recipe:"alkobyk",sale:22000,qty:100,category:"moonshine"},
+    shizoyorsh:{name:"«ШизоЕрш»",recipe:"shizoyorsh",sale:17000,qty:100,category:"medicine"},
+    panacea:{name:"«Панацея»",recipe:"panacea",sale:8000,qty:100,category:"medicine"},
+  };
+
+  const prices=Object.fromEntries(Object.keys(products).map(id=>[id,{}]));
+  let activeCategory="cooking",activeProduct="foil",activeField=null,heroSwitchTimer=null;
+
+  function cleanNumber(v){const n=Number(String(v).replace(/[^\d.,]/g,'').replace(',','.'));return Number.isFinite(n)?n:0;}
+  function fmt(v){return new Intl.NumberFormat("ru-RU",{maximumFractionDigits:0}).format(Math.ceil(v||0)).replace(/\u00A0/g,' ');}
+  function money(v){return fmt(v)+'р';}
+  function getPrice(name){return prices[activeProduct]?.[name]??defaultPrices[name]??0;}
+  function setPrice(name,value,input){
+    activeField={id:input.dataset.fieldId,start:input.selectionStart,end:input.selectionEnd};
+    prices[activeProduct][name]=cleanNumber(value);render();saveSettings();
+  }
+  function restoreFocus(){
+    if(!activeField)return;
+    let next;
+    if(activeField.id?.startsWith('sale:'))next=document.getElementById('salePrice');
+    else if(activeField.id?.startsWith('qty:'))next=document.getElementById('targetQty');
+    else next=document.querySelector(`[data-field-id="${activeField.id}"]`);
+    if(!next)return;
+    next.focus();
+    const pos=Math.min(activeField.start??next.value.length,next.value.length);
+    next.setSelectionRange(pos,Math.min(activeField.end??pos,next.value.length));
+  }
+
+  function costPerUnit(recipeId,memo={}){
+    if(memo[recipeId]!=null)return memo[recipeId];
+    const r=recipes[recipeId];if(!r)return 0;
+    const cost=(r.ingredients.reduce((s,ing)=>s+(ing.type==='buy'?ing.qty*getPrice(ing.name):ing.qty*costPerUnit(ing.recipe,memo)),0)+r.energy*energyPrice)/r.output;
+    return memo[recipeId]=cost;
+  }
+
+  function expandRecipe(recipeId,needed,sections,shopping){
+    const recipe=recipes[recipeId];if(!recipe)return;
+    const crafts=Math.ceil(needed/recipe.output);
+    if(!sections.has(recipeId))sections.set(recipeId,{recipeId,needed:0,crafts:0,produced:0,rows:new Map(),energy:0});
+    const sec=sections.get(recipeId);
+    sec.needed+=needed;sec.crafts+=crafts;sec.produced+=crafts*recipe.output;sec.energy+=crafts*recipe.energy;
+    for(const ing of recipe.ingredients){
+      const totalQty=crafts*ing.qty;
+      if(ing.type==='buy'){
+        const price=getPrice(ing.name);
+        if(!shopping.has(ing.name))shopping.set(ing.name,{name:ing.name,qty:0,price:getPrice(ing.name)});
+        shopping.get(ing.name).qty+=totalQty;shopping.get(ing.name).price=price;
+        const key='buy:'+ing.name;
+        if(!sec.rows.has(key))sec.rows.set(key,{name:ing.name,type:'Покупается',qty:0,price,total:0,buyName:ing.name});
+        const row=sec.rows.get(key);row.qty+=totalQty;row.total+=totalQty*price;row.price=price;
+      } else {
+        const unit=costPerUnit(ing.recipe);const key='craft:'+ing.recipe;
+        if(!sec.rows.has(key))sec.rows.set(key,{name:ing.name,type:'Крафтится',qty:0,price:unit,total:0});
+        const row=sec.rows.get(key);row.qty+=totalQty;row.total+=totalQty*unit;row.price=unit;
+        expandRecipe(ing.recipe,totalQty,sections,shopping);
+      }
+    }
+    const eKey='energy';
+    if(!sec.rows.has(eKey))sec.rows.set(eKey,{name:'Энергия',type:'Расход',qty:0,price:energyPrice,total:0});
+    const er=sec.rows.get(eKey);er.qty+=crafts*recipe.energy;er.total+=crafts*recipe.energy*energyPrice;
+  }
+
+  function calculate(){
+    const prod=products[activeProduct];const sections=new Map();const shopping=new Map();
+    expandRecipe(prod.recipe,prod.qty,sections,shopping);
+    const totalBuy=Array.from(shopping.values()).reduce((s,r)=>s+r.qty*r.price,0);
+    const totalEnergy=Array.from(sections.values()).reduce((s,sec)=>s+sec.crafts*recipes[sec.recipeId].energy*energyPrice,0);
+    return{prod,sections:Array.from(sections.values()),shopping:Array.from(shopping.values()),totalCost:totalBuy+totalEnergy,revenue:prod.qty*prod.sale};
+  }
+
+  function renderTabs(){
+    document.getElementById("categories").innerHTML=Object.entries(categories).map(([id,cat])=>
+      `<button class="category-tab ${id===activeCategory?'active':''}" onclick="selectCategory('${id}')">${cat.name}</button>`).join('');
+    const tabs=Object.entries(products).filter(([,p])=>p.category===activeCategory);
+    document.getElementById("tabs").innerHTML=tabs.length
+      ?tabs.map(([id,p])=>`<button class="tab ${id===activeProduct?'active':''}" onclick="selectProduct('${id}')">${p.name}</button>`).join('')
+      :'<span class="empty-tab">В этой категории пока нет товаров</span>';
+  }
+
+  function renderHero(){
+    const cat=categories[activeCategory];const hero=document.getElementById('heroArt');
+    const apply=()=>{document.getElementById('heroKicker').textContent=cat.kicker;document.getElementById('heroTitle').textContent=cat.title;document.getElementById('heroSub').textContent=cat.sub;document.getElementById('heroTags').innerHTML=cat.tags.map(t=>`<span>${t}</span>`).join('');hero.dataset.category=activeCategory;};
+    if(hero.dataset.category===activeCategory){apply();return;}if(!hero.dataset.category){apply();return;}
+    clearTimeout(heroSwitchTimer);hero.classList.add('is-switching');
+    heroSwitchTimer=setTimeout(()=>{apply();requestAnimationFrame(()=>hero.classList.remove('is-switching'));},95);
+  }
+
+  function render(){
+    if(activeProduct&&products[activeProduct]?.category!==activeCategory)activeProduct=Object.keys(products).find(id=>products[id].category===activeCategory)??null;
+    renderTabs();renderHero();
+    if(!activeProduct){document.getElementById('activeName').textContent='';document.getElementById('targetQty').value='';document.getElementById('salePrice').value='';document.getElementById('summary').innerHTML='<div class="stat"><span>Нет товаров</span><strong>—</strong></div>';document.getElementById('craftTable').innerHTML='';document.getElementById('shoppingList').innerHTML='';return;}
+    const state=calculate();
+    document.getElementById('activeName').textContent=state.prod.name;
+    const qtyEl=document.getElementById('targetQty');const saleEl=document.getElementById('salePrice');
+    if(document.activeElement!==qtyEl)qtyEl.value=state.prod.qty;
+    if(document.activeElement!==saleEl)saleEl.value=state.prod.sale;
+    renderSummary(state);renderCraftTable(state.sections);renderShopping(state.shopping);restoreFocus();
+  }
+
+  function renderSummary(state){
+    const profit=state.revenue-state.totalCost;const margin=state.revenue>0?profit/state.revenue*100:0;
+    const realUnit=state.totalCost/Math.max(state.prod.qty,1);const theo=costPerUnit(products[activeProduct].recipe);
+    document.getElementById('summary').innerHTML=`
+      <div class="stat"><span>Выручка</span><strong>${money(state.revenue)}</strong></div>
+      <div class="stat"><span>Себестоимость партии</span><strong>${money(state.totalCost)}</strong></div>
+      <div class="stat stat-double">
+        <div class="stat-row"><span>Себестоимость 1 шт <em class="stat-hint" title="По среднему выходу, без округления">теор.</em></span><strong class="cost-theo">${money(theo)}</strong></div>
+        <div class="stat-row"><span>Себестоимость 1 шт <em class="stat-hint" title="С учётом округления крафтов вверх">реал.</em></span><strong>${money(realUnit)}</strong></div>
+      </div>
+      <div class="stat"><span>Прибыль</span><strong class="${profit>=0?'positive':'negative'}">${money(profit)}</strong></div>
+      <div class="stat"><span>Маржа</span><strong class="${margin>=0?'positive':'negative'}">${fmt(margin)}%</strong></div>`;
+  }
+
+  function renderCraftTable(sections){
+    document.getElementById('craftTable').innerHTML=sections.map(sec=>{
+      const rec=recipes[sec.recipeId];const rows=Array.from(sec.rows.values());const theo=costPerUnit(sec.recipeId);
+      return`<div class="section">
+        <div class="section-title"><span>${rec.name}</span><div class="unit-cost-wrap"><span class="unit-cost-theo">теор. ${money(theo)}/шт</span></div></div>
+        <div class="section-meta">Нужно: ${fmt(sec.needed)} шт · крафтов: ${sec.crafts} · получится: ${fmt(sec.produced)} шт · выход: ${fmt(rec.output)} шт</div>
+        <table><thead><tr><th>Материал</th><th>Статус</th><th class="num">Количество</th><th class="num">Ваша цена</th><th class="num">Аукцион <span class="auction-refresh" onclick="loadAuctionPrices()" title="Обновить">↻</span></th><th class="num">Итого</th></tr></thead>
+        <tbody>${rows.map(row=>rowHtml(row)).join('')}</tbody></table></div>`;
+    }).join('');
+  }
+
+  function rowHtml(row){
+    const priceCell=row.buyName?`<input class="price-input" type="text" inputmode="decimal" value="${getPrice(row.buyName)}" data-field-id="${activeProduct}:${row.buyName}" oninput="setPrice('${escAttr(row.buyName)}',this.value,this)">`:money(row.price);
+    const auctionCell=row.buyName?`<span class="auction-price loading" data-item="${row.buyName}">…</span>`:`<span class="auction-na">—</span>`;
+    return`<tr><td>${row.name}</td><td><span class="tag">${row.type}</span></td><td class="num">${fmt(row.qty)}</td><td class="num">${priceCell}</td><td class="num auction-col">${auctionCell}</td><td class="num">${money(row.total)}</td></tr>`;
+  }
+
+  function renderShopping(shopping){
+    const sorted=[...shopping].sort((a,b)=>a.name.localeCompare(b.name,'ru'));
+    const total=sorted.reduce((s,r)=>s+r.qty*r.price,0);
+    const energy=calculate().sections.reduce((s,sec)=>s+sec.crafts*recipes[sec.recipeId].energy,0);
+    document.getElementById('shoppingList').innerHTML=`
+      <table><thead><tr><th>Предмет</th><th class="num">Купить, шт</th><th class="num">Цена за 1 шт</th><th class="num">Итого</th></tr></thead>
+      <tbody>${sorted.map(r=>`<tr><td>${r.name}</td><td class="num">${fmt(r.qty)}</td><td class="num">${money(r.price)}</td><td class="num">${money(r.qty*r.price)}</td></tr>`).join('')}
+      <tr><td>Энергия</td><td class="num">${fmt(energy)}</td><td class="num">${money(energyPrice)}</td><td class="num">${money(energy*energyPrice)}</td></tr></tbody></table>
+      <div class="shopping-total"><span>Итого закупка с энергией</span><span>${money(total+energy*energyPrice)}</span></div>`;
+  }
+
+  function escAttr(v){return String(v).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+  function updateQty(v){if(!activeProduct)return;activeField={id:'qty:'+activeProduct,start:document.getElementById('targetQty').selectionStart,end:document.getElementById('targetQty').selectionEnd};products[activeProduct].qty=Math.max(0,Math.floor(cleanNumber(v)));render();saveSettings();}
+  function updateSale(v){if(!activeProduct)return;activeField={id:'sale:'+activeProduct,start:document.getElementById('salePrice').selectionStart,end:document.getElementById('salePrice').selectionEnd};products[activeProduct].sale=cleanNumber(v);render();saveSettings();}
+  function stepQty(d){if(!activeProduct)return;products[activeProduct].qty=Math.max(0,products[activeProduct].qty+d);activeField=null;render();saveSettings();}
+  function selectProduct(id){activeProduct=id;activeCategory=products[id].category;activeField=null;render();saveSettings();}
+  function selectCategory(id){activeCategory=id;activeProduct=Object.keys(products).find(k=>products[k].category===id)??null;activeField=null;render();saveSettings();}
+
+  // Settings
+  const LS_KEY='stalcraft_v3';let saveTimer=null;
+  function collectSettings(){const prods={};Object.entries(products).forEach(([k,v])=>{prods[k]={sale:v.sale,qty:v.qty};});return{activeProduct,products:prods,prices,defaultPrices};}
+  function applySettings(s){if(!s)return;if(s.activeProduct&&products[s.activeProduct]){activeProduct=s.activeProduct;activeCategory=products[s.activeProduct].category;}if(s.products)Object.entries(s.products).forEach(([k,v])=>{if(products[k]){if(v.sale!=null)products[k].sale=v.sale;if(v.qty!=null)products[k].qty=v.qty;}});if(s.prices)Object.entries(s.prices).forEach(([k,v])=>{if(prices[k]&&typeof v==='object')Object.assign(prices[k],v);});if(s.defaultPrices)Object.entries(s.defaultPrices).forEach(([k,v])=>{if(defaultPrices[k]!==undefined)defaultPrices[k]=v;});}
+  function saveSettings(){clearTimeout(saveTimer);saveTimer=setTimeout(async()=>{const s=collectSettings();try{localStorage.setItem(LS_KEY,JSON.stringify(s));}catch(e){}const client=await getSb();if(client&&currentUser){await client.from('user_settings').upsert({user_id:currentUser.id,settings:s,updated_at:new Date().toISOString()},{onConflict:'user_id'});}},1500);}
+
+  // Auction
+  const AUCTION_URL="https://yfamesaijwutdhnlifsc.supabase.co/functions/v1/stalcraft-auction";
+  let auctionCache={},auctionLoading=false,auctionAutoTimer=null;
+  async function loadAuctionPrices(){
+    if(auctionLoading)return;auctionLoading=true;
+    document.querySelectorAll('.auction-refresh').forEach(el=>el.classList.add('spinning'));
+    const items=new Set();document.querySelectorAll('[data-item]').forEach(el=>{if(el.dataset.item)items.add(el.dataset.item);});
+    if(activeProduct&&products[activeProduct])items.add(products[activeProduct].name);
+    if(!items.size){auctionLoading=false;return;}
+    try{
+      const res=await fetch(AUCTION_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({names:[...items]})});
+      if(!res.ok)throw new Error('HTTP '+res.status);
+      const data=await res.json();Object.assign(auctionCache,data);
+      document.querySelectorAll('[data-item]').forEach(el=>{
+        const name=el.dataset.item;if(!name||!data[name])return;
+        const ap=data[name].price;const mp=getPrice(name);
+        if(ap===null){el.textContent='нет данных';el.className='auction-price equal';return;}
+        el.textContent=money(ap);el.removeAttribute('class');
+        if(ap>mp*1.05){el.className='auction-price higher';el.title=`Аукцион дороже на ${money(ap-mp)}`;}
+        else if(ap<mp*0.95){el.className='auction-price lower';el.title=`Аукцион дешевле на ${money(mp-ap)}`;}
+        else{el.className='auction-price equal';el.title='Цена близка к аукционной';}
+      });
+      const pname=products[activeProduct]?.name;
+      if(pname&&data[pname]?.price){const ap=data[pname].price;let sb=document.getElementById('auctionSaleBlock');if(!sb){sb=document.createElement('div');sb.id='auctionSaleBlock';sb.className='auction-sale-block';document.getElementById('summary')?.appendChild(sb);}const diff=ap-products[activeProduct].sale;sb.innerHTML=`<span class="label">🏷 Аукцион сейчас</span><span class="auction-sale-price">${money(ap)}</span><span style="color:${diff>=0?'#83e092':'#ff6b6b'};font-size:12px;">${diff>=0?'+':''}${money(diff)}</span>`;}
+    }catch(e){console.warn('Auction error',e);document.querySelectorAll('.auction-price').forEach(el=>{el.textContent='—';el.className='auction-na';});}
+    finally{auctionLoading=false;document.querySelectorAll('.auction-refresh').forEach(el=>el.classList.remove('spinning'));}
+  }
+  const _origRender=render;render=function(...a){_origRender(...a);clearTimeout(auctionAutoTimer);auctionAutoTimer=setTimeout(loadAuctionPrices,800);};
+
+  // Custom cursor
+  (function(){
+    const ring=document.querySelector('.custom-cursor'),dot=document.querySelector('.custom-cursor-dot');
+    let audioCtx=null,lastHover=0;
+    function unlock(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();}
+    function playSound(type){if(!audioCtx||audioCtx.state!=='running')return;const osc=audioCtx.createOscillator(),gain=audioCtx.createGain(),now=audioCtx.currentTime;osc.type=type==='click'?'triangle':'sine';osc.frequency.setValueAtTime(type==='click'?420:720,now);osc.frequency.exponentialRampToValueAtTime(type==='click'?260:930,now+0.075);gain.gain.setValueAtTime(0.0001,now);gain.gain.exponentialRampToValueAtTime(type==='click'?0.035:0.018,now+0.01);gain.gain.exponentialRampToValueAtTime(0.0001,now+0.09);osc.connect(gain);gain.connect(audioCtx.destination);osc.start(now);osc.stop(now+0.1);}
+    document.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;document.body.classList.add('cursor-ready');const t=`translate(${e.clientX}px,${e.clientY}px) translate(-50%,-50%)`;ring.style.transform=t;dot.style.transform=t;document.body.classList.toggle('cursor-hover',!!e.target.closest('button,input,a'));});
+    document.addEventListener('pointerdown',e=>{if(e.pointerType==='touch')return;document.body.classList.add('cursor-down');unlock();if(e.target.closest('button'))playSound('click');});
+    document.addEventListener('pointerup',()=>document.body.classList.remove('cursor-down'));
+    document.addEventListener('pointerover',e=>{if(e.pointerType==='touch'||!e.target.closest('button'))return;const now=performance.now();if(now-lastHover<70)return;lastHover=now;unlock();playSound('hover');});
+  })();
+
+  // Supabase + Auth + Chat
+  const SUPABASE_URL="https://yfamesaijwutdhnlifsc.supabase.co";
+  const SUPABASE_ANON_KEY="sb_publishable_8Lc-p1kygsLD8k_zSUB-Fg_K7j3LS2I";
+  let _sb=null,currentUser=null,currentProfile=null,chatOpen=false,chatUnreadCount=0,chatChannel=null,presenceChannel=null;
+  async function getSb(){if(_sb)return _sb;if(typeof supabase!=='undefined'){_sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);return _sb;}return null;}
+  async function initAuth(){const c=await getSb();if(!c)return;const{data:{session}}=await c.auth.getSession();if(session)await onSignIn(session.user);else renderAuthArea(null);c.auth.onAuthStateChange(async(event,session)=>{if(event==='SIGNED_IN')await onSignIn(session.user);if(event==='SIGNED_OUT'){currentUser=null;currentProfile=null;renderAuthArea(null);initPresence();}});}
+  async function onSignIn(user){currentUser=user;await new Promise(r=>setTimeout(r,600));const c=await getSb();const{data}=await c.from('profiles').select('*').eq('id',user.id).maybeSingle();currentProfile=data;renderAuthArea(user);closeModal('authModal');const{data:sr}=await c.from('user_settings').select('settings').eq('user_id',user.id).maybeSingle();if(sr?.settings){applySettings(sr.settings);render();}initPresence();initChat();}
+  function renderAuthArea(user){const area=document.getElementById('authArea');if(!user){area.innerHTML=`<button class="auth-btn" onclick="openModal('authModal')">🔐 Войти</button>`;return;}const initials=(currentProfile?.username||user.email||'?')[0].toUpperCase();area.innerHTML=`<div class="profile-wrap"><div class="avatar-btn" onclick="toggleProfileDropdown()">${initials}</div><div class="profile-dropdown" id="profileDropdown"><div class="pd-header"><div class="pd-name">${currentProfile?.username||'Сталкер'}</div><div class="pd-email">${user.email}</div></div><button class="pd-item" onclick="openProfileModal()">👤 Личный кабинет</button><button class="pd-item danger" onclick="doLogout()">🚪 Выйти</button></div></div>`;}
+  function toggleProfileDropdown(){document.getElementById('profileDropdown')?.classList.toggle('open');}
+  document.addEventListener('click',e=>{if(!e.target.closest('.profile-wrap'))document.getElementById('profileDropdown')?.classList.remove('open');});
+  function openModal(id){document.getElementById(id).classList.add('open');}
+  function closeModal(id){document.getElementById(id).classList.remove('open');document.getElementById('profileDropdown')?.classList.remove('open');}
+  function switchAuthTab(tab){['formLogin','formRegister','formOTP','formForgot'].forEach(f=>document.getElementById(f).style.display='none');document.getElementById(tab==='login'?'formLogin':tab==='register'?'formRegister':tab==='otp'?'formOTP':'formForgot').style.display='';document.getElementById('tabLogin').classList.toggle('active',tab==='login');document.getElementById('tabRegister').classList.toggle('active',tab==='register');}
+  function showForgotForm(){switchAuthTab('forgot');}
+  async function doLogin(){const c=await getSb();if(!c)return;document.getElementById('loginError').textContent='';const{error}=await c.auth.signInWithPassword({email:document.getElementById('loginEmail').value.trim(),password:document.getElementById('loginPassword').value});if(error){if(error.message.includes('Email not confirmed')){document.getElementById('otpEmail').textContent=document.getElementById('loginEmail').value;switchAuthTab('otp');}else document.getElementById('loginError').textContent='Неверный email или пароль';}}
+  async function doRegister(){const c=await getSb();if(!c)return;const username=document.getElementById('regUsername').value.trim(),email=document.getElementById('regEmail').value.trim(),password=document.getElementById('regPassword').value,errEl=document.getElementById('regError');errEl.textContent='';if(!username||!email||!password){errEl.textContent='Заполни все поля';return;}if(!/^[a-zA-Z0-9_]{3,20}$/.test(username)){errEl.textContent='Некорректный логин';return;}if(password.length<8){errEl.textContent='Пароль минимум 8 символов';return;}const{data:exists}=await c.from('profiles').select('id').eq('username',username).single();if(exists){errEl.textContent='Логин уже занят';return;}const{error}=await c.auth.signUp({email,password,options:{data:{username}}});if(error){errEl.textContent=error.message;return;}document.getElementById('otpEmail').textContent=email;switchAuthTab('otp');}
+  function otpNext(input,index){input.value=input.value.replace(/\D/g,'');const inputs=document.querySelectorAll('.otp-wrap input');if(input.value&&index<5)inputs[index+1].focus();if(!input.value&&index>0)inputs[index-1].focus();}
+  function getOTPCode(){return Array.from(document.querySelectorAll('.otp-wrap input')).map(i=>i.value).join('');}
+  async function doVerifyOTP(){const c=await getSb();if(!c)return;const email=document.getElementById('regEmail').value||document.getElementById('loginEmail').value,token=getOTPCode(),errEl=document.getElementById('otpError');errEl.textContent='';if(token.length<6){errEl.textContent='Введи 6 цифр';return;}const{error}=await c.auth.verifyOtp({email,token,type:'signup'});if(error){errEl.textContent=error.message;return;}closeModal('authModal');}
+  async function resendOTP(){const c=await getSb();if(!c)return;const email=document.getElementById('regEmail').value||document.getElementById('loginEmail').value;await c.auth.resend({type:'signup',email});document.getElementById('otpError').textContent='Код отправлен повторно';}
+  async function doForgot(){const c=await getSb();if(!c)return;const email=document.getElementById('forgotEmail').value.trim(),errEl=document.getElementById('forgotError'),sucEl=document.getElementById('forgotSuccess');errEl.textContent='';sucEl.textContent='';if(!email){errEl.textContent='Введи email';return;}const{error}=await c.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+window.location.pathname});if(error)errEl.textContent=error.message;else sucEl.textContent='✅ Письмо отправлено';}
+  async function doLogout(){const c=await getSb();if(c)await c.auth.signOut();}
+  function openProfileModal(){document.getElementById('profileDropdown')?.classList.remove('open');if(!currentUser)return;document.getElementById('profileSubtitle').textContent=currentUser.email;document.getElementById('profileUsername').value=currentProfile?.username||'';document.getElementById('profileEmail').value='';document.getElementById('profilePassword').value='';document.getElementById('profilePassword2').value='';openModal('profileModal');}
+  async function updateUsername(){const c=await getSb();if(!c||!currentUser)return;const val=document.getElementById('profileUsername').value.trim(),errEl=document.getElementById('profileUsernameError'),sucEl=document.getElementById('profileUsernameSuccess');errEl.textContent='';sucEl.textContent='';if(!/^[a-zA-Z0-9_]{3,20}$/.test(val)){errEl.textContent='3–20 символов: буквы, цифры, _';return;}const{error}=await c.from('profiles').update({username:val}).eq('id',currentUser.id);if(error){errEl.textContent=error.message;return;}currentProfile={...currentProfile,username:val};sucEl.textContent='✅ Логин обновлён';renderAuthArea(currentUser);}
+  async function updateEmail(){const c=await getSb();if(!c)return;const val=document.getElementById('profileEmail').value.trim(),errEl=document.getElementById('profileEmailError'),sucEl=document.getElementById('profileEmailSuccess');errEl.textContent='';sucEl.textContent='';if(!val){errEl.textContent='Введи email';return;}const{error}=await c.auth.updateUser({email:val});if(error)errEl.textContent=error.message;else sucEl.textContent='✅ Подтверди смену на новой почте';}
+  async function updatePassword(){const c=await getSb();if(!c)return;const p1=document.getElementById('profilePassword').value,p2=document.getElementById('profilePassword2').value,errEl=document.getElementById('profilePasswordError'),sucEl=document.getElementById('profilePasswordSuccess');errEl.textContent='';sucEl.textContent='';if(p1.length<8){errEl.textContent='Минимум 8 символов';return;}if(p1!==p2){errEl.textContent='Пароли не совпадают';return;}const{error}=await c.auth.updateUser({password:p1});if(error)errEl.textContent=error.message;else sucEl.textContent='✅ Пароль изменён';}
+  async function initPresence(){const c=await getSb();if(!c)return;if(presenceChannel)c.removeChannel(presenceChannel);presenceChannel=c.channel('online-users',{config:{presence:{key:currentUser?.id||'anon-'+Math.random()}}});presenceChannel.on('presence',{event:'sync'},()=>{const count=Object.keys(presenceChannel.presenceState()).length;document.getElementById('onlineCount').textContent=count+' онлайн';document.getElementById('chatOnline').textContent='· '+count+' онлайн';}).subscribe(async status=>{if(status==='SUBSCRIBED')await presenceChannel.track({user:currentProfile?.username||'Гость',online_at:new Date().toISOString()});});}
+  function toggleChat(){chatOpen=!chatOpen;document.getElementById('chatWidget').classList.toggle('open',chatOpen);if(chatOpen){chatUnreadCount=0;document.getElementById('chatUnread').style.display='none';scrollChatBottom();}}
+  function scrollChatBottom(){const el=document.getElementById('chatMessages');el.scrollTop=el.scrollHeight;}
+  function addChatMessage(msg,own=false){const el=document.getElementById('chatMessages');const div=document.createElement('div');div.className='chat-msg'+(own?' own':'');const time=new Date(msg.created_at||Date.now()).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});div.innerHTML=`<div class="msg-meta">${own?'':escHtml(msg.username||'Гость')+' · '}${time}</div><div class="msg-bubble">${escHtml(msg.text)}</div>`;el.appendChild(div);scrollChatBottom();if(!chatOpen){chatUnreadCount++;const badge=document.getElementById('chatUnread');badge.style.display='flex';badge.textContent=chatUnreadCount>9?'9+':chatUnreadCount;}}
+  function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  async function initChat(){const c=await getSb();if(!c)return;const inputArea=document.getElementById('chatInputArea');if(!currentUser){inputArea.innerHTML='<p class="chat-login-note">Войди в аккаунт,<br>чтобы писать в чат</p>';}else{inputArea.innerHTML=`<div class="chat-input-wrap"><input type="text" id="chatInput" placeholder="Написать сообщение…" maxlength="300" onkeydown="if(event.key==='Enter')sendMessage()"><button class="chat-send-btn" onclick="sendMessage()">→</button></div>`;}const{data:msgs}=await c.from('messages').select('*').order('created_at',{ascending:true}).limit(50);document.getElementById('chatMessages').innerHTML='';msgs?.forEach(m=>addChatMessage(m,currentUser&&m.user_id===currentUser.id));if(chatChannel){c.removeChannel(chatChannel);chatChannel=null;}chatChannel=c.channel('chat-room').on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},payload=>{addChatMessage(payload.new,currentUser&&payload.new.user_id===currentUser.id);}).subscribe();}
+  async function sendMessage(){const c=await getSb();if(!c||!currentUser)return;const input=document.getElementById('chatInput');const text=input?.value?.trim();if(!text)return;input.value='';await c.from('messages').insert({user_id:currentUser.id,username:currentProfile?.username||currentUser.email,text});}
+
+  // Запуск
+  try{const raw=localStorage.getItem(LS_KEY);if(raw)applySettings(JSON.parse(raw));}catch(e){}
+  render();
+  initPresence();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    if(typeof supabase!=='undefined')initAuth();
+    else document.querySelector('script[src*="supabase"]').addEventListener('load',initAuth);
+  </script>
+</body>
+</html>
